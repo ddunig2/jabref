@@ -44,6 +44,7 @@ import org.jabref.gui.exporter.WriteXMPAction;
 import org.jabref.gui.externalfiles.DownloadFullTextAction;
 import org.jabref.gui.externalfiletype.ExternalFileType;
 import org.jabref.gui.externalfiletype.ExternalFileTypes;
+import org.jabref.gui.groups.GroupViewMode;
 import org.jabref.gui.importer.actions.AppendDatabaseAction;
 import org.jabref.gui.journals.AbbreviateAction;
 import org.jabref.gui.journals.AbbreviationType;
@@ -94,6 +95,7 @@ import org.jabref.model.entry.field.FieldFactory;
 import org.jabref.model.entry.field.SpecialField;
 import org.jabref.model.entry.field.SpecialFieldValue;
 import org.jabref.model.entry.field.StandardField;
+import org.jabref.model.metadata.FilePreferences;
 import org.jabref.preferences.JabRefPreferences;
 
 import com.google.common.eventbus.Subscribe;
@@ -145,7 +147,7 @@ public class BasePanel extends StackPane {
     private Optional<DatabaseChangeMonitor> changeMonitor = Optional.empty();
     private JabRefExecutorService executorService;
 
-    public BasePanel(JabRefFrame frame, BasePanelPreferences preferences, BibDatabaseContext bibDatabaseContext, ExternalFileTypes externalFileTypes) {
+    public BasePanel(JabRefFrame frame, BasePanelPreferences preferences, BibDatabaseContext bibDatabaseContext, ExternalFileTypes externalFileTypes, GroupViewMode groupViewMode, FilePreferences filePreferences) {
         this.preferences = Objects.requireNonNull(preferences);
         this.frame = Objects.requireNonNull(frame);
         this.executorService = JabRefExecutorService.INSTANCE;
@@ -158,10 +160,10 @@ public class BasePanel extends StackPane {
         bibDatabaseContext.getMetaData().registerListener(this);
 
         this.sidePaneManager = frame.getSidePaneManager();
-        this.tableModel = new MainTableDataModel(getBibDatabaseContext());
+        this.tableModel = new MainTableDataModel(getBibDatabaseContext(), groupViewMode);
 
         citationStyleCache = new CitationStyleCache(bibDatabaseContext);
-        annotationCache = new FileAnnotationCache(bibDatabaseContext, Globals.prefs.getFilePreferences());
+        annotationCache = new FileAnnotationCache(bibDatabaseContext, filePreferences);
 
         setupMainPanel();
 

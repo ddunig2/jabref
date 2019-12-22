@@ -60,7 +60,7 @@ public class FromAuxDialog extends BaseDialog<Void> {
         setResultConverter(button -> {
             if (button == generateButtonType) {
                 Defaults defaults = new Defaults(Globals.prefs.getDefaultBibDatabaseMode());
-                BasePanel bp = new BasePanel(frame, BasePanelPreferences.from(Globals.prefs), new BibDatabaseContext(auxParserResult.getGeneratedBibDatabase(), defaults), ExternalFileTypes.getInstance());
+                BasePanel bp = new BasePanel(frame, BasePanelPreferences.from(Globals.prefs), new BibDatabaseContext(auxParserResult.getGeneratedBibDatabase(), defaults), ExternalFileTypes.getInstance(), Globals.prefs.getGroupViewMode(), Globals.prefs.getFilePreferences());
                 frame.addTab(bp, true);
             }
             return null;

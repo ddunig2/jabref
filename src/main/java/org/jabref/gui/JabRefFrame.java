@@ -1016,7 +1016,7 @@ public class JabRefFrame extends BorderPane {
     public BasePanel addTab(BibDatabaseContext databaseContext, boolean raisePanel) {
         Objects.requireNonNull(databaseContext);
 
-        BasePanel bp = new BasePanel(this, BasePanelPreferences.from(Globals.prefs), databaseContext, ExternalFileTypes.getInstance());
+        BasePanel bp = new BasePanel(this, BasePanelPreferences.from(Globals.prefs), databaseContext, ExternalFileTypes.getInstance(), Globals.prefs.getGroupViewMode(), Globals.prefs.getFilePreferences());
         addTab(bp, raisePanel);
         return bp;
     }

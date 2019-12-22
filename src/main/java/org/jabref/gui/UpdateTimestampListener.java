@@ -11,6 +11,13 @@ import com.google.common.eventbus.Subscribe;
 class UpdateTimestampListener {
     private final JabRefPreferences jabRefPreferences;
 
+    /**
+     * The jabRefPreferences are required, because they are queried at each call. The user can change the preferences
+     * and this listener behaves differently. This implementation seems to be less complex then re-registering this
+     * listener or reconfiguring this listener if the preferences changed.
+     *
+     * @param jabRefPreferences the global JabRef preferences.
+     */
     UpdateTimestampListener(JabRefPreferences jabRefPreferences) {
         this.jabRefPreferences = jabRefPreferences;
     }

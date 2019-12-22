@@ -24,7 +24,7 @@ public class MainTableDataModel {
     private final SortedList<BibEntryTableViewModel> entriesSorted;
     private final GroupViewMode groupViewMode;
 
-    public MainTableDataModel(BibDatabaseContext context) {
+    public MainTableDataModel(BibDatabaseContext context, GroupViewMode groupViewMode) {
         ObservableList<BibEntry> allEntries = BindingsHelper.forUI(context.getDatabase().getEntries());
 
         ObservableList<BibEntryTableViewModel> entriesViewModel = BindingsHelper.mapBacked(allEntries, BibEntryTableViewModel::new);
@@ -41,7 +41,7 @@ public class MainTableDataModel {
         Globals.stateManager.setActiveSearchResultSize(context, resultSize);
         // We need to wrap the list since otherwise sorting in the table does not work
         entriesSorted = new SortedList<>(entriesFiltered);
-        groupViewMode = Globals.prefs.getGroupViewMode();
+        this.groupViewMode = groupViewMode;
     }
 
     private boolean isMatched(BibEntryTableViewModel entry) {
