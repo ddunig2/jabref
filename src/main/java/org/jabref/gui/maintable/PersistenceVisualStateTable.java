@@ -1,10 +1,9 @@
 package org.jabref.gui.maintable;
 
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javafx.beans.InvalidationListener;
-
-import org.jabref.preferences.JabRefPreferences;
 
 /**
  * Keep track of changes made to the columns (reordering, resorting, resizing).
@@ -12,11 +11,11 @@ import org.jabref.preferences.JabRefPreferences;
 public class PersistenceVisualStateTable {
 
     private final MainTable mainTable;
-    private final JabRefPreferences preferences;
+    private final Consumer<ColumnPreferences> storeColumnPreferences;
 
-    public PersistenceVisualStateTable(final MainTable mainTable, JabRefPreferences preferences) {
+    public PersistenceVisualStateTable(final MainTable mainTable, final Consumer<ColumnPreferences> storeColumnPreferences) {
         this.mainTable = mainTable;
-        this.preferences = preferences;
+        this.storeColumnPreferences = storeColumnPreferences;
 
         mainTable.getColumns().addListener((InvalidationListener) obs -> updateColumnPreferences());
         mainTable.getSortOrder().addListener((InvalidationListener) obs -> updateColumnPreferences());
@@ -33,13 +32,14 @@ public class PersistenceVisualStateTable {
      * Store shown columns, their width and their sortType in preferences.
      */
     private void updateColumnPreferences() {
-        preferences.storeColumnPreferences(new ColumnPreferences(
-                mainTable.getColumns().stream()
-                        .map(column -> ((MainTableColumn<?>) column).getModel())
-                        .collect(Collectors.toList()),
-                mainTable.getSortOrder().stream()
-                        .map(column -> ((MainTableColumn<?>) column).getModel())
-                        .collect(Collectors.toList())
-        ));
+        storeColumnPreferences.accept(
+                new ColumnPreferences(
+                        mainTable.getColumns().stream()
+                                 .map(column -> ((MainTableColumn<?>) column).getModel())
+                                 .collect(Collectors.toList()),
+                        mainTable.getSortOrder().stream()
+                                 .map(column -> ((MainTableColumn<?>) column).getModel())
+                                 .collect(Collectors.toList())
+                ));
     }
 }

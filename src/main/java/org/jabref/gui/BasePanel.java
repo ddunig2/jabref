@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.swing.undo.CannotRedoException;
@@ -49,6 +51,7 @@ import org.jabref.gui.importer.actions.AppendDatabaseAction;
 import org.jabref.gui.journals.AbbreviateAction;
 import org.jabref.gui.journals.AbbreviationType;
 import org.jabref.gui.journals.UnabbreviateAction;
+import org.jabref.gui.maintable.ColumnPreferences;
 import org.jabref.gui.maintable.MainTable;
 import org.jabref.gui.maintable.MainTableDataModel;
 import org.jabref.gui.mergeentries.MergeEntriesAction;
@@ -66,12 +69,15 @@ import org.jabref.gui.util.DefaultTaskExecutor;
 import org.jabref.gui.worker.SendAsEMailAction;
 import org.jabref.logic.citationstyle.CitationStyleCache;
 import org.jabref.logic.citationstyle.CitationStyleOutputFormat;
+import org.jabref.logic.importer.ImportFormatPreferences;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.layout.Layout;
 import org.jabref.logic.layout.LayoutHelper;
 import org.jabref.logic.pdf.FileAnnotationCache;
+import org.jabref.logic.preferences.TimestampPreferences;
 import org.jabref.logic.search.SearchQuery;
 import org.jabref.logic.util.UpdateField;
+import org.jabref.logic.util.UpdateFieldPreferences;
 import org.jabref.logic.util.io.FileFinder;
 import org.jabref.logic.util.io.FileFinders;
 import org.jabref.logic.util.io.FileUtil;
@@ -96,6 +102,7 @@ import org.jabref.model.entry.field.SpecialField;
 import org.jabref.model.entry.field.SpecialFieldValue;
 import org.jabref.model.entry.field.StandardField;
 import org.jabref.model.metadata.FilePreferences;
+import org.jabref.model.util.FileUpdateMonitor;
 import org.jabref.preferences.JabRefPreferences;
 
 import com.google.common.eventbus.Subscribe;
@@ -127,7 +134,7 @@ public class BasePanel extends StackPane {
     private final EntryEditor entryEditor;
     private final DialogService dialogService;
     private MainTable mainTable;
-    private BasePanelPreferences preferences;
+    private BasePanelPreferences basePanelPreferences;
     // To contain instantiated entry editors. This is to save time
     // As most enums, this must not be null
     private BasePanelMode mode = BasePanelMode.SHOWING_NOTHING;
@@ -147,8 +154,8 @@ public class BasePanel extends StackPane {
     private Optional<DatabaseChangeMonitor> changeMonitor = Optional.empty();
     private JabRefExecutorService executorService;
 
-    public BasePanel(JabRefFrame frame, BasePanelPreferences preferences, BibDatabaseContext bibDatabaseContext, ExternalFileTypes externalFileTypes, GroupViewMode groupViewMode, FilePreferences filePreferences) {
-        this.preferences = Objects.requireNonNull(preferences);
+    public BasePanel(JabRefFrame frame, BasePanelPreferences basePanelPreferences, BibDatabaseContext bibDatabaseContext, ExternalFileTypes externalFileTypes, GroupViewMode groupViewMode, FilePreferences filePreferences, ImportFormatPreferences importFormatPreferences, UpdateFieldPreferences updateFieldPreferences, FileUpdateMonitor fileUpdateMonitor, StateManager stateManager, Consumer<ColumnPreferences> updateColumnPreferences, Supplier<TimestampPreferences> timestampPreferencesSupplier) {
+        this.basePanelPreferences = Objects.requireNonNull(basePanelPreferences);
         this.frame = Objects.requireNonNull(frame);
         this.executorService = JabRefExecutorService.INSTANCE;
         this.bibDatabaseContext = Objects.requireNonNull(bibDatabaseContext);
@@ -165,7 +172,7 @@ public class BasePanel extends StackPane {
         citationStyleCache = new CitationStyleCache(bibDatabaseContext);
         annotationCache = new FileAnnotationCache(bibDatabaseContext, filePreferences);
 
-        setupMainPanel();
+        setupMainPanel(filePreferences, importFormatPreferences, updateFieldPreferences, fileUpdateMonitor, stateManager, updateColumnPreferences, basePanelPreferences);
 
         setupActions();
 
@@ -177,7 +184,7 @@ public class BasePanel extends StackPane {
         // ensure that all entry changes mark the panel as changed
         this.bibDatabaseContext.getDatabase().registerListener(this);
 
-        this.getDatabase().registerListener(new UpdateTimestampListener(Globals.prefs));
+        this.getDatabase().registerListener(new UpdateTimestampListener(timestampPreferencesSupplier));
 
         this.entryEditor = new EntryEditor(this, externalFileTypes);
         // Open entry editor for first entry on start up.
@@ -647,10 +654,23 @@ public class BasePanel extends StackPane {
         mainTable.updateFont();
     }
 
-    private void createMainTable() {
+    private void createMainTable(FilePreferences filePreferences, ImportFormatPreferences importFormatPreferences, UpdateFieldPreferences updateFieldPreferences, FileUpdateMonitor fileUpdateMonitor, StateManager stateManager, Consumer<ColumnPreferences> updateColumnPreferences) {
         bibDatabaseContext.getDatabase().registerListener(SpecialFieldDatabaseChangeListener.INSTANCE);
 
-        mainTable = new MainTable(tableModel, frame, this, bibDatabaseContext, preferences.getTablePreferences(), externalFileTypes, preferences.getKeyBindings());
+        mainTable = new MainTable(
+                tableModel,
+                frame,
+                this,
+                bibDatabaseContext,
+                basePanelPreferences.getTablePreferences(),
+                externalFileTypes,
+                basePanelPreferences.getKeyBindings(),
+                filePreferences,
+                importFormatPreferences,
+                updateFieldPreferences,
+                fileUpdateMonitor,
+                stateManager,
+                updateColumnPreferences);
 
         mainTable.updateFont();
 
@@ -728,14 +748,14 @@ public class BasePanel extends StackPane {
         */
     }
 
-    public void setupMainPanel() {
-        preferences = BasePanelPreferences.from(Globals.prefs);
+    public void setupMainPanel(FilePreferences filePreferences, ImportFormatPreferences importFormatPreferences, UpdateFieldPreferences updateFieldPreferences, FileUpdateMonitor fileUpdateMonitor, StateManager stateManager, Consumer<ColumnPreferences> updateColumnPreferences, BasePanelPreferences basePanelPreferences) {
+        this.basePanelPreferences = basePanelPreferences;
 
         splitPane = new SplitPane();
         splitPane.setOrientation(Orientation.VERTICAL);
         adjustSplitter(); // restore last splitting state (before mainTable is created as creation affects the stored size of the entryEditors)
 
-        createMainTable();
+        createMainTable(filePreferences, importFormatPreferences, updateFieldPreferences, fileUpdateMonitor, stateManager, updateColumnPreferences);
 
         splitPane.getItems().add(mainTable);
 
@@ -771,7 +791,7 @@ public class BasePanel extends StackPane {
      * Set up auto completion for this database
      */
     private void setupAutoCompletion() {
-        AutoCompletePreferences autoCompletePreferences = preferences.getAutoCompletePreferences();
+        AutoCompletePreferences autoCompletePreferences = basePanelPreferences.getAutoCompletePreferences();
         if (autoCompletePreferences.shouldAutoComplete()) {
             suggestionProviders = new SuggestionProviders(autoCompletePreferences, Globals.journalAbbreviationLoader);
             suggestionProviders.indexDatabase(getDatabase());
@@ -797,7 +817,7 @@ public class BasePanel extends StackPane {
 
     private void adjustSplitter() {
         if (mode == BasePanelMode.SHOWING_EDITOR) {
-            splitPane.setDividerPositions(preferences.getEntryEditorDividerPosition());
+            splitPane.setDividerPositions(basePanelPreferences.getEntryEditorDividerPosition());
         }
     }
 
@@ -968,7 +988,7 @@ public class BasePanel extends StackPane {
         }
 
         if (mode == BasePanelMode.SHOWING_EDITOR) {
-            preferences.setEntryEditorDividerPosition(position.doubleValue());
+            basePanelPreferences.setEntryEditorDividerPosition(position.doubleValue());
         }
     }
 

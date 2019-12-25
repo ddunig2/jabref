@@ -19,8 +19,10 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 
+import org.jabref.Globals;
 import org.jabref.gui.AbstractViewModel;
 import org.jabref.gui.BasePanel;
+import org.jabref.gui.BasePanelPreferences;
 import org.jabref.gui.DialogService;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.model.entry.field.Field;
@@ -177,7 +179,7 @@ class ContentSelectorDialogViewModel extends AbstractViewModel {
         List<Field> fieldNamesToRemove = filterFieldsToRemove();
         fieldNamesToRemove.forEach(metaData::clearContentSelectors);
 
-        basePanel.setupMainPanel();
+        basePanel.setupMainPanel(Globals.prefs.getFilePreferences(), Globals.prefs.getImportFormatPreferences(), Globals.prefs.getUpdateFieldPreferences(), Globals.getFileUpdateMonitor(), Globals.stateManager, columnPreferences -> Globals.prefs.storeColumnPreferences(columnPreferences), BasePanelPreferences.from(Globals.prefs));
         basePanel.markNonUndoableBaseChanged();
     }
 

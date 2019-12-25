@@ -235,7 +235,7 @@ public class OpenDatabaseAction extends SimpleCommand {
             ParserResultWarningDialog.showParserResultWarningDialog(result, frame);
         }
 
-        BasePanel basePanel = new BasePanel(frame, BasePanelPreferences.from(Globals.prefs), result.getDatabaseContext(), ExternalFileTypes.getInstance(), Globals.prefs.getGroupViewMode(), Globals.prefs.getFilePreferences());
+        BasePanel basePanel = new BasePanel(frame, BasePanelPreferences.from(Globals.prefs), result.getDatabaseContext(), ExternalFileTypes.getInstance(), Globals.prefs.getGroupViewMode(), Globals.prefs.getFilePreferences(), Globals.prefs.getImportFormatPreferences(), Globals.prefs.getUpdateFieldPreferences(), Globals.getFileUpdateMonitor(), Globals.stateManager, columnPreferences -> Globals.prefs.storeColumnPreferences(columnPreferences), () -> Globals.prefs.getTimestampPreferences());
         frame.addTab(basePanel, raisePanel);
         return basePanel;
 

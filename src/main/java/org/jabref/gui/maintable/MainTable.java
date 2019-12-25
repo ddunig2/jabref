@@ -6,6 +6,9 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.swing.undo.UndoManager;
@@ -28,6 +31,7 @@ import org.jabref.gui.BasePanel;
 import org.jabref.gui.DragAndDropDataFormats;
 import org.jabref.gui.GUIGlobals;
 import org.jabref.gui.JabRefFrame;
+import org.jabref.gui.StateManager;
 import org.jabref.gui.externalfiles.ImportHandler;
 import org.jabref.gui.externalfiletype.ExternalFileTypes;
 import org.jabref.gui.keyboard.KeyBinding;
@@ -38,11 +42,15 @@ import org.jabref.gui.util.ControlHelper;
 import org.jabref.gui.util.CustomLocalDragboard;
 import org.jabref.gui.util.DefaultTaskExecutor;
 import org.jabref.gui.util.ViewModelTableRowFactory;
+import org.jabref.logic.importer.ImportFormatPreferences;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.util.UpdateField;
+import org.jabref.logic.util.UpdateFieldPreferences;
 import org.jabref.model.database.BibDatabaseContext;
 import org.jabref.model.database.event.AllInsertsFinishedEvent;
 import org.jabref.model.entry.BibEntry;
+import org.jabref.model.metadata.FilePreferences;
+import org.jabref.model.util.FileUpdateMonitor;
 import org.jabref.preferences.JabRefPreferences;
 
 import com.google.common.eventbus.Subscribe;
@@ -64,7 +72,15 @@ public class MainTable extends TableView<BibEntryTableViewModel> {
 
     public MainTable(MainTableDataModel model, JabRefFrame frame,
                      BasePanel panel, BibDatabaseContext database,
-                     MainTablePreferences preferences, ExternalFileTypes externalFileTypes, KeyBindingRepository keyBindingRepository) {
+                     MainTablePreferences preferences,
+                     ExternalFileTypes externalFileTypes,
+                     KeyBindingRepository keyBindingRepository,
+                     FilePreferences filePreferences,
+                     ImportFormatPreferences importFormatPreferences,
+                     UpdateFieldPreferences updateFieldPreferences,
+                     FileUpdateMonitor fileUpdateMonitor,
+                     StateManager stateManager,
+                     Consumer<ColumnPreferences> storeColumnPreferences) {
         super();
 
         this.model = model;
@@ -74,21 +90,21 @@ public class MainTable extends TableView<BibEntryTableViewModel> {
 
         importHandler = new ImportHandler(
                 frame.getDialogService(), database, externalFileTypes,
-                Globals.prefs.getFilePreferences(),
-                Globals.prefs.getImportFormatPreferences(),
-                Globals.prefs.getUpdateFieldPreferences(),
-                Globals.getFileUpdateMonitor(),
+                filePreferences,
+                importFormatPreferences,
+                updateFieldPreferences,
+                fileUpdateMonitor,
                 undoManager,
-                Globals.stateManager);
+                stateManager);
 
         this.getColumns().addAll(new MainTableColumnFactory(database, preferences.getColumnPreferences(), externalFileTypes, panel.getUndoManager(), frame.getDialogService()).createColumns());
 
         new ViewModelTableRowFactory<BibEntryTableViewModel>()
                 .withOnMouseClickedEvent((entry, event) -> {
-                                                                  if (event.getClickCount() == 2) {
-                                                                      panel.showAndEdit(entry.getEntry());
-                                                                  }
-                                                              })
+                    if (event.getClickCount() == 2) {
+                        panel.showAndEdit(entry.getEntry());
+                    }
+                })
                 .withContextMenu(entry -> RightClickMenu.create(entry, keyBindingRepository, panel, frame.getDialogService()))
                 .setOnDragDetected(this::handleOnDragDetected)
                 .setOnDragDropped(this::handleOnDragDropped)
@@ -100,10 +116,10 @@ public class MainTable extends TableView<BibEntryTableViewModel> {
         this.getSortOrder().clear();
         preferences.getColumnPreferences().getColumnSortOrder().forEach(columnModel ->
                 this.getColumns().stream()
-                        .map(column -> (MainTableColumn<?>) column)
-                        .filter(column -> column.getModel().equals(columnModel))
-                        .findFirst()
-                        .ifPresent(column -> this.getSortOrder().add(column)));
+                    .map(column -> (MainTableColumn<?>) column)
+                    .filter(column -> column.getModel().equals(columnModel))
+                    .findFirst()
+                    .ifPresent(column -> this.getSortOrder().add(column)));
 
         if (preferences.getResizeColumnsToFit()) {
             this.setColumnResizePolicy(new SmartConstrainedResizePolicy());
@@ -119,7 +135,7 @@ public class MainTable extends TableView<BibEntryTableViewModel> {
         this.getStylesheets().add(MainTable.class.getResource("MainTable.css").toExternalForm());
 
         // Store visual state
-        new PersistenceVisualStateTable(this, Globals.prefs);
+        new PersistenceVisualStateTable(this, storeColumnPreferences);
 
         // TODO: Float marked entries
         //model.updateMarkingState(Globals.prefs.getBoolean(JabRefPreferences.FLOAT_MARKED_ENTRIES));
@@ -337,10 +353,10 @@ public class MainTable extends TableView<BibEntryTableViewModel> {
 
     public List<BibEntry> getSelectedEntries() {
         return getSelectionModel()
-                                  .getSelectedItems()
-                                  .stream()
-                                  .map(BibEntryTableViewModel::getEntry)
-                                  .collect(Collectors.toList());
+                .getSelectedItems()
+                .stream()
+                .map(BibEntryTableViewModel::getEntry)
+                .collect(Collectors.toList());
     }
 
     private Optional<BibEntryTableViewModel> findEntry(BibEntry entry) {

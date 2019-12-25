@@ -922,7 +922,7 @@ public class JabRefFrame extends BorderPane {
 
             // Update tables:
             if (bf.getDatabase() != null) {
-                DefaultTaskExecutor.runInJavaFXThread(bf::setupMainPanel);
+                DefaultTaskExecutor.runInJavaFXThread(() -> bf.setupMainPanel(Globals.prefs.getFilePreferences(), Globals.prefs.getImportFormatPreferences(), Globals.prefs.getUpdateFieldPreferences(), Globals.getFileUpdateMonitor(), Globals.stateManager, columnPreferences -> Globals.prefs.storeColumnPreferences(columnPreferences), BasePanelPreferences.from(Globals.prefs)));
             }
         }
     }
@@ -1016,7 +1016,7 @@ public class JabRefFrame extends BorderPane {
     public BasePanel addTab(BibDatabaseContext databaseContext, boolean raisePanel) {
         Objects.requireNonNull(databaseContext);
 
-        BasePanel bp = new BasePanel(this, BasePanelPreferences.from(Globals.prefs), databaseContext, ExternalFileTypes.getInstance(), Globals.prefs.getGroupViewMode(), Globals.prefs.getFilePreferences());
+        BasePanel bp = new BasePanel(this, BasePanelPreferences.from(Globals.prefs), databaseContext, ExternalFileTypes.getInstance(), Globals.prefs.getGroupViewMode(), Globals.prefs.getFilePreferences(), Globals.prefs.getImportFormatPreferences(), Globals.prefs.getUpdateFieldPreferences(), Globals.getFileUpdateMonitor(), Globals.stateManager, columnPreferences -> Globals.prefs.storeColumnPreferences(columnPreferences), () -> Globals.prefs.getTimestampPreferences());
         addTab(bp, raisePanel);
         return bp;
     }

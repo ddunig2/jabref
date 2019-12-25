@@ -54,7 +54,7 @@ class UpdateTimestampListenerTest {
 
         assertEquals(Optional.of(baseDate), bibEntry.getField(timestampField), "Initial timestamp not set correctly");
 
-        database.registerListener(new UpdateTimestampListener(preferencesMock));
+        database.registerListener(new UpdateTimestampListener(() -> timestampPreferencesMock));
 
         bibEntry.setField(new UnknownField("test"), "some value");
 
@@ -77,7 +77,7 @@ class UpdateTimestampListenerTest {
 
         assertEquals(Optional.of(baseDate), bibEntry.getField(timestampField), "Initial timestamp not set correctly");
 
-        database.registerListener(new UpdateTimestampListener(preferencesMock));
+        database.registerListener(new UpdateTimestampListener(() -> timestampPreferencesMock));
 
         bibEntry.setField(new UnknownField("test"), "some value");
 
