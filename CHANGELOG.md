@@ -12,6 +12,7 @@ We refer to [GitHub issues](https://github.com/JabRef/jabref/issues) by using `#
 ## [Unreleased]
 
 ### Changed
+- we changed the open office view panel to show buttons in rows of three instead of palcing them all vertical to create more space [#5479](https://github.com/JabRef/jabref/issues/5479)
 
 ### Fixed
 
